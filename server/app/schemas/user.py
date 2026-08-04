@@ -26,3 +26,10 @@ class TokenResponse(BaseModel):
     token: str
     token_type: str = "bearer"
     user: UserResponse
+
+
+class ProfileUpdateRequest(BaseModel):
+    name: Optional[str] = None
+    email: Optional[EmailStr] = None
+    phone: Optional[str] = None
+    address: Optional[str] = None

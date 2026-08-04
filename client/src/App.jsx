@@ -7,6 +7,7 @@ import LikesPage from "./pages/LikesPage";
 import CartPage from "./pages/CartPage";
 import CollectionsPage from "./pages/CollectionsPage";
 import ProductDetailPage from "./pages/ProductDetailPage";
+import CheckoutPage from "./pages/CheckoutPage";
 
 // Admin Subsystem Imports
 import AdminLoginPage from "./pages/AdminLoginPage";
@@ -22,6 +23,7 @@ export default function App() {
         <Route path="/auth" element={<AuthPage />} />
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/checkout" element={<CheckoutPage />} />
         <Route path="/likes" element={<LikesPage />} />
         <Route path="/my_cart" element={<CartPage />} />
         <Route path="/collections" element={<CollectionsPage />} />

@@ -1,6 +1,6 @@
 from fastapi import HTTPException, status
 from app.database import db
-from app.schemas.user import UserCreate, UserLogin, TokenResponse, UserResponse, UserProfileResponse
+from app.schemas.user import UserCreate, UserLogin, TokenResponse, UserResponse, UserProfileResponse,ProfileUpdateRequest
 from app.utils.auth import hash_password, verify_password, create_access_token
 from bson import ObjectId
 
@@ -69,6 +69,32 @@ class AuthController:
             token=token,
             user=UserResponse(id=user_id, name=user.get("name", "Admin"), email=user["email"])
         )
+
+    @staticmethod
+    async def update_profile(user_id: str, payload: ProfileUpdateRequest) -> UserProfileResponse:
+        try:
+            # Filter out None fields so unsubmitted fields aren't cleared
+            update_data = payload.model_dump(exclude_unset=True)
+            
+            if not update_data:
+                raise HTTPException(status_code=400, detail="No fields provided for update")
+
+            # Update document in MongoDB Atlas matching user_id
+            result = await db.db.users.update_one(
+                {"_id": ObjectId(user_id)},
+                {"$set": update_data}
+            )
+
+            if result.matched_count == 0:
+                raise HTTPException(status_code=404, detail="User profile not found")
+
+            # Return updated profile data
+            return await AuthController.get_profile(user_id)
+        except HTTPException:
+            raise
+        except Exception as e:
+            print(f"❌ Error updating user profile: {e}")
+            raise HTTPException(status_code=500, detail="Failed to update profile")
 
     @staticmethod
     async def create_admin(new_admin_data: UserCreate, created_by_id: str) -> dict:
