@@ -442,78 +442,78 @@ export default function AdminDashboard() {
               </form>
             </div>
 
-            {/* Right: Active Products Table */}
-            <div className="lg:col-span-2 bg-white border border-[#C89B3C]/30 p-6 rounded-sm shadow-sm space-y-4">
+            {/* Right: Active Products Vertical Cards Grid */}
+            <div className="lg:col-span-2 space-y-4">
               <h2 className="font-['Cinzel',serif] text-sm uppercase text-[#8A4A2A] tracking-wider border-b pb-2">
                 Active Catalog List ({products.length})
               </h2>
 
               {loading ? (
                 <p className="text-xs text-gray-500">Loading catalog...</p>
+              ) : products.length === 0 ? (
+                <div className="bg-white p-6 border border-[#C89B3C]/20 text-center rounded-sm text-xs text-gray-500">
+                  No active products in catalog.
+                </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs">
-                    <thead className="bg-[#2C0812] text-[#E8CB86] uppercase font-['Cinzel',serif]">
-                      <tr>
-                        <th className="p-3">Cover</th>
-                        <th className="p-3">Name</th>
-                        <th className="p-3">Category</th>
-                        <th className="p-3">Price</th>
-                        <th className="p-3">Tag</th>
-                        <th className="p-3">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y">
-                      {products.map((p) => {
-                        const pId = p._id || p.id;
-                        return (
-                          <tr key={pId} className="hover:bg-[#FBF3E7]/30 transition-colors">
-                            <td className="p-3">
-                              <img src={p.image} alt="" className="w-10 h-12 object-cover border" />
-                            </td>
-                            <td className="p-3 font-semibold text-[#2C0812]">{p.name}</td>
-                            <td className="p-3">{p.category}</td>
-                            <td className="p-3 font-semibold text-[#C89B3C]">${p.price}</td>
-                            <td className="p-3">
-                              <span className="bg-[#5C1225] text-white text-[9px] px-2 py-0.5 rounded-xs font-['Cinzel',serif] uppercase">
-                                {p.tag || "Standard"}
-                              </span>
-                            </td>
-                            <td className="p-3 space-x-2">
-                              <button
-                                onClick={() => setEditingProduct(p)}
-                                className="text-blue-700 hover:underline font-semibold"
-                              >
-                                Edit
-                              </button>
-                              <button
-                                onClick={() => handleDeleteProduct(pId)}
-                                className="text-red-600 hover:underline font-semibold"
-                              >
-                                Delete
-                              </button>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {products.map((p) => {
+                    const pId = p._id || p.id;
+                    return (
+                      <div
+                        key={pId}
+                        className="bg-white border border-[#C89B3C]/30 p-4 rounded-sm shadow-sm flex flex-col justify-between space-y-3 hover:border-[#C89B3C] transition-all"
+                      >
+                        <div className="flex gap-4 items-start">
+                          <img
+                            src={p.image}
+                            alt=""
+                            className="w-16 h-20 object-cover border rounded-xs flex-shrink-0"
+                          />
+                          <div className="space-y-1">
+                            <span className="bg-[#5C1225] text-white text-[9px] px-2 py-0.5 rounded-xs font-['Cinzel',serif] uppercase inline-block">
+                              {p.tag || "Standard"}
+                            </span>
+                            <h3 className="font-['Cormorant_Garamond',serif] italic text-lg font-bold text-[#2C0812]">
+                              {p.name}
+                            </h3>
+                            <p className="text-xs text-gray-500">{p.category}</p>
+                            <p className="text-sm font-semibold text-[#C89B3C]">${p.price}</p>
+                          </div>
+                        </div>
+
+                        <div className="flex gap-2 pt-2 border-t border-[#C89B3C]/20">
+                          <button
+                            onClick={() => setEditingProduct(p)}
+                            className="flex-1 py-1.5 bg-[#FBF3E7] hover:bg-[#C89B3C]/20 text-[#2C0812] border border-[#C89B3C]/40 text-xs font-semibold rounded-xs transition-colors"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => handleDeleteProduct(pId)}
+                            className="flex-1 py-1.5 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 text-xs font-semibold rounded-xs transition-colors"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
           </div>
         )}
 
-        {/* TAB 2: ORDER FULFILLMENT & TRACKING STEP UPDATES */}
+        {/* TAB 2: ORDER FULFILLMENT & TRACKING STEP UPDATES (CARD VIEW) */}
         {activeTab === "orders" && (
-          <div className="bg-white border border-[#C89B3C]/30 p-6 rounded-sm shadow-sm space-y-6">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b pb-4">
+          <div className="space-y-6">
+            <div className="bg-white border border-[#C89B3C]/30 p-6 rounded-sm shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div>
                 <h2 className="font-['Cinzel',serif] text-sm uppercase text-[#8A4A2A] tracking-wider">
                   Live Customer Orders & Fulfillment
                 </h2>
                 <p className="text-[11px] text-gray-500">
-                  Update customer order status steps in real-time.
+                  Manage orders and update delivery steps in real time.
                 </p>
               </div>
 
@@ -561,44 +561,35 @@ export default function AdminDashboard() {
             {ordersLoading ? (
               <p className="text-xs text-gray-500">Loading order records...</p>
             ) : orders.length === 0 ? (
-              <p className="text-xs text-gray-500">No orders found matching criteria.</p>
+              <div className="bg-white border border-[#C89B3C]/20 p-8 text-center rounded-sm text-xs text-gray-500">
+                No orders found matching criteria.
+              </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-[#2C0812] text-[#E8CB86] uppercase font-['Cinzel',serif]">
-                    <tr>
-                      <th className="p-3">Order ID</th>
-                      <th className="p-3">Customer</th>
-                      <th className="p-3">Garments</th>
-                      <th className="p-3">Amount</th>
-                      <th className="p-3">Current Status</th>
-                      <th className="p-3">Step Controls</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y">
-                    {orders.map((ord) => {
-                      const ordId = ord._id || ord.id;
-                      return (
-                        <tr key={ordId} className="hover:bg-[#FBF3E7]/20 transition-colors">
-                          <td className="p-3 font-mono font-semibold text-[#8A4A2A]">
-                            #{ordId.slice(-8)}
-                          </td>
-                          <td className="p-3">
-                            <p className="font-semibold text-[#2C0812]">{ord.customer_name}</p>
-                            <p className="text-[10px] text-gray-500">{ord.customer_email}</p>
-                            <p className="text-[10px] text-gray-400">{ord.phone}</p>
-                          </td>
-                          <td className="p-3">
-                            {ord.items?.map((item, idx) => (
-                              <div key={idx} className="text-[11px]">
-                                • {item.product_name} ({item.size}) x {item.quantity}
-                              </div>
-                            ))}
-                          </td>
-                          <td className="p-3 font-semibold text-[#C89B3C]">${ord.total_amount}</td>
-                          <td className="p-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {orders.map((ord) => {
+                  const ordId = ord._id || ord.id;
+                  return (
+                    <div
+                      key={ordId}
+                      className="bg-white border border-[#C89B3C]/30 p-6 rounded-sm shadow-sm space-y-4 flex flex-col justify-between hover:border-[#C89B3C] transition-all"
+                    >
+                      {/* Card Top Details */}
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-start border-b border-[#C89B3C]/20 pb-3">
+                          <div>
+                            <span className="font-mono text-[11px] font-bold text-[#8A4A2A] block">
+                              REF #{ordId.slice(-8)}
+                            </span>
+                            <h3 className="font-semibold text-[#2C0812] text-sm mt-0.5">
+                              {ord.customer_name}
+                            </h3>
+                            <p className="text-[11px] text-gray-500">{ord.customer_email}</p>
+                            {ord.phone && <p className="text-[11px] text-gray-400">{ord.phone}</p>}
+                          </div>
+
+                          <div className="text-right">
                             <span
-                              className={`px-2 py-0.5 text-[9px] font-['Cinzel',serif] uppercase font-bold rounded-xs ${
+                              className={`px-2.5 py-1 text-[9px] font-['Cinzel',serif] uppercase font-bold rounded-xs inline-block mb-1 ${
                                 ord.order_status === "Delivered"
                                   ? "bg-green-100 text-green-800"
                                   : ord.order_status === "Cancelled"
@@ -610,33 +601,54 @@ export default function AdminDashboard() {
                             >
                               {ord.order_status}
                             </span>
-                            {ord.return_reason && (
-                              <p className="text-[9px] text-red-600 italic mt-1">
-                                Reason: {ord.return_reason}
-                              </p>
-                            )}
-                          </td>
-                          <td className="p-3">
-                            {/* Step Change Dropdown */}
-                            <select
-                              value={ord.order_status}
-                              onChange={(e) => handleOrderStatusUpdate(ordId, e.target.value)}
-                              className="border border-[#C89B3C]/50 bg-white p-1 rounded-sm text-xs font-semibold focus:outline-none"
-                            >
-                              <option value="Placed">Placed</option>
-                              <option value="Processing">Processing</option>
-                              <option value="Shipped">Shipped</option>
-                              <option value="Out for Delivery">Out for Delivery</option>
-                              <option value="Delivered">Delivered</option>
-                              <option value="Returned">Returned</option>
-                              <option value="Cancelled">Cancelled</option>
-                            </select>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                            <p className="text-sm font-semibold text-[#C89B3C]">${ord.total_amount}</p>
+                          </div>
+                        </div>
+
+                        {/* Garment Items Included */}
+                        <div className="space-y-1 bg-[#FBF3E7]/30 p-3 rounded-xs border border-[#C89B3C]/10">
+                          <span className="font-['Cinzel',serif] text-[9px] uppercase tracking-wider text-[#8A4A2A] block">
+                            Ordered Garments
+                          </span>
+                          {ord.items?.map((item, idx) => (
+                            <div key={idx} className="flex justify-between items-center text-xs">
+                              <span className="font-medium text-[#2C0812]">
+                                • {item.product_name} ({item.size})
+                              </span>
+                              <span className="text-gray-500">x{item.quantity}</span>
+                            </div>
+                          ))}
+                        </div>
+
+                        {ord.return_reason && (
+                          <div className="p-2.5 bg-red-50 text-red-800 text-[11px] rounded-xs border border-red-200">
+                            <strong>Return Reason:</strong> {ord.return_reason}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Control Selector Footer */}
+                      <div className="pt-3 border-t border-[#C89B3C]/20 flex items-center justify-between gap-3">
+                        <label className="text-[11px] font-['Cinzel',serif] uppercase text-[#8A4A2A] font-semibold">
+                          Advance Status:
+                        </label>
+                        <select
+                          value={ord.order_status}
+                          onChange={(e) => handleOrderStatusUpdate(ordId, e.target.value)}
+                          className="border border-[#C89B3C]/50 bg-white p-2 rounded-sm text-xs font-semibold focus:outline-none focus:border-[#5C1225]"
+                        >
+                          <option value="Placed">Placed</option>
+                          <option value="Processing">Processing</option>
+                          <option value="Shipped">Shipped</option>
+                          <option value="Out for Delivery">Out for Delivery</option>
+                          <option value="Delivered">Delivered</option>
+                          <option value="Returned">Returned</option>
+                          <option value="Cancelled">Cancelled</option>
+                        </select>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -645,7 +657,7 @@ export default function AdminDashboard() {
         {/* TAB 3: SALES & PERFORMANCE ANALYTICS */}
         {activeTab === "analytics" && (
           <div className="space-y-8">
-            <div className="grid grid-cols-1 sm:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               <div className="bg-white p-6 border border-[#C89B3C]/30 rounded-sm shadow-sm">
                 <span className="font-['Cinzel',serif] text-xs uppercase text-[#8A4A2A] block mb-1">
                   Total Gross Revenue
@@ -683,7 +695,7 @@ export default function AdminDashboard() {
                 <p className="font-['Cormorant_Garamond',serif] italic text-4xl text-orange-700 font-bold">
                   {analytics.returns_requested || 0}
                 </p>
-                <span className="text-[10px] text-gray-500 mt-2 block">Within 7-day window</span>
+                <span className="text-[10px] text-gray-500 mt-2 block">Within policy window</span>
               </div>
             </div>
 
