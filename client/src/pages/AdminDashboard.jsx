@@ -10,12 +10,14 @@ export default function AdminDashboard() {
     localStorage.getItem("authToken") ||
     localStorage.getItem("token");
 
-  // Tab control: 'inventory' | 'analytics' | 'create-admin'
+  // Tab control: 'inventory' | 'orders' | 'analytics' | 'create-admin'
   const [activeTab, setActiveTab] = useState("inventory");
 
   // Data States
   const [products, setProducts] = useState([]);
+  const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [ordersLoading, setOrdersLoading] = useState(false);
   const [statusMsg, setStatusMsg] = useState("");
 
   // Product Edit Modal State
@@ -36,22 +38,22 @@ export default function AdminDashboard() {
   // Secondary Admin Creation Form State
   const [newAdmin, setNewAdmin] = useState({ name: "", email: "", password: "" });
 
-  // Analytics Mock Data
-  const [analytics] = useState({
-    totalSales: 18450,
-    ordersCount: 64,
-    topCategory: "Kurtis",
-    recentTransactions: [
-      { id: "ORD-9901", item: "Zardozi Embroidered Silk Kurti", amount: 240, date: "2026-08-02", status: "Completed" },
-      { id: "ORD-9902", item: "Royal Crimson Velvet Lehenga", amount: 850, date: "2026-08-02", status: "Processing" },
-      { id: "ORD-9903", item: "Kashmiri Pashmina Shawl", amount: 320, date: "2026-08-01", status: "Completed" },
-    ],
+  // Analytics Real/Live State
+  const [analytics, setAnalytics] = useState({
+    total_revenue: 0,
+    total_orders: 0,
+    delivered_orders: 0,
+    pending_orders: 0,
+    returns_requested: 0,
   });
 
   useEffect(() => {
     fetchProducts();
+    fetchAdminOrders();
+    fetchAdminAnalytics();
   }, []);
 
+  // Fetch Catalog
   const fetchProducts = async () => {
     try {
       const res = await fetch("http://localhost:5000/api/products");
@@ -61,6 +63,43 @@ export default function AdminDashboard() {
       setStatusMsg("❌ Error fetching active products.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Fetch Admin Orders
+  const fetchAdminOrders = async (statusFilter = "") => {
+    setOrdersLoading(true);
+    const token = getAdminToken();
+    try {
+      const url = statusFilter
+        ? `http://localhost:5000/api/orders/admin/all?status=${statusFilter}`
+        : "http://localhost:5000/api/orders/admin/all";
+
+      const res = await fetch(url, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (Array.isArray(data)) setOrders(data);
+    } catch {
+      console.error("Failed to fetch admin orders.");
+    } finally {
+      setOrdersLoading(false);
+    }
+  };
+
+  // Fetch Analytics
+  const fetchAdminAnalytics = async () => {
+    const token = getAdminToken();
+    try {
+      const res = await fetch("http://localhost:5000/api/orders/admin/analytics", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (data && typeof data.total_revenue !== "undefined") {
+        setAnalytics(data);
+      }
+    } catch {
+      console.error("Failed to fetch order analytics.");
     }
   };
 
@@ -152,7 +191,36 @@ export default function AdminDashboard() {
     }
   };
 
-  // 4. Create Secondary Admin
+  // 4. Update Order Status Step
+  const handleOrderStatusUpdate = async (orderId, newStatus) => {
+    const token = getAdminToken();
+    try {
+      const res = await fetch(`http://localhost:5000/api/orders/admin/${orderId}/status`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          status: newStatus,
+          note: `Order status manually set to '${newStatus}' by merchant.`,
+        }),
+      });
+
+      if (res.ok) {
+        setStatusMsg(`✨ Order status updated to '${newStatus}'`);
+        fetchAdminOrders();
+        fetchAdminAnalytics();
+      } else {
+        const err = await res.json();
+        alert(`Failed: ${err.detail}`);
+      }
+    } catch {
+      alert("Network error updating order status.");
+    }
+  };
+
+  // 5. Create Secondary Admin
   const handleCreateAdmin = async (e) => {
     e.preventDefault();
     const token = getAdminToken();
@@ -190,7 +258,7 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-[#FBF3E7] font-['Jost',sans-serif]">
-      {/* Top Admin Bar */}
+      {/* Top Admin Header */}
       <header className="bg-[#2C0812] text-[#FBF3E7] border-b border-[#C89B3C] sticky top-0 z-30 px-6 py-4">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
           <div>
@@ -215,7 +283,7 @@ export default function AdminDashboard() {
 
       {/* Main Container */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
-        {/* Tab Navigation */}
+        {/* Navigation Tabs */}
         <div className="flex flex-wrap gap-2 mb-8 border-b border-[#C89B3C]/30 pb-3">
           <button
             onClick={() => setActiveTab("inventory")}
@@ -229,7 +297,24 @@ export default function AdminDashboard() {
           </button>
 
           <button
-            onClick={() => setActiveTab("analytics")}
+            onClick={() => {
+              setActiveTab("orders");
+              fetchAdminOrders();
+            }}
+            className={`px-5 py-2.5 text-xs font-['Cinzel',serif] uppercase tracking-wider rounded-sm transition-all ${
+              activeTab === "orders"
+                ? "bg-[#5C1225] text-[#FBF3E7]"
+                : "bg-white text-[#2C0812] border border-[#C89B3C]/30 hover:border-[#C89B3C]"
+            }`}
+          >
+            📋 Order Fulfillment ({orders.length})
+          </button>
+
+          <button
+            onClick={() => {
+              setActiveTab("analytics");
+              fetchAdminAnalytics();
+            }}
             className={`px-5 py-2.5 text-xs font-['Cinzel',serif] uppercase tracking-wider rounded-sm transition-all ${
               activeTab === "analytics"
                 ? "bg-[#5C1225] text-[#FBF3E7]"
@@ -419,84 +504,202 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* TAB 2: SALES & PERFORMANCE ANALYTICS */}
-        {activeTab === "analytics" && (
-          <div className="space-y-8">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-              <div className="bg-white p-6 border border-[#C89B3C]/30 rounded-sm shadow-sm">
-                <span className="font-['Cinzel',serif] text-xs uppercase text-[#8A4A2A] block mb-1">
-                  Total Gross Revenue
-                </span>
-                <p className="font-['Cormorant_Garamond',serif] italic text-4xl text-[#2C0812] font-bold">
-                  ${analytics.totalSales.toLocaleString()}
+        {/* TAB 2: ORDER FULFILLMENT & TRACKING STEP UPDATES */}
+        {activeTab === "orders" && (
+          <div className="bg-white border border-[#C89B3C]/30 p-6 rounded-sm shadow-sm space-y-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b pb-4">
+              <div>
+                <h2 className="font-['Cinzel',serif] text-sm uppercase text-[#8A4A2A] tracking-wider">
+                  Live Customer Orders & Fulfillment
+                </h2>
+                <p className="text-[11px] text-gray-500">
+                  Update customer order status steps in real-time.
                 </p>
-                <span className="text-[10px] text-green-600 mt-2 block">↑ 18.4% from last month</span>
               </div>
 
-              <div className="bg-white p-6 border border-[#C89B3C]/30 rounded-sm shadow-sm">
-                <span className="font-['Cinzel',serif] text-xs uppercase text-[#8A4A2A] block mb-1">
-                  Successful Orders
-                </span>
-                <p className="font-['Cormorant_Garamond',serif] italic text-4xl text-[#2C0812] font-bold">
-                  {analytics.ordersCount}
-                </p>
-                <span className="text-[10px] text-gray-500 mt-2 block">Across all luxury categories</span>
-              </div>
-
-              <div className="bg-white p-6 border border-[#C89B3C]/30 rounded-sm shadow-sm">
-                <span className="font-['Cinzel',serif] text-xs uppercase text-[#8A4A2A] block mb-1">
-                  Top Performing Category
-                </span>
-                <p className="font-['Cormorant_Garamond',serif] italic text-4xl text-[#5C1225] font-bold">
-                  {analytics.topCategory}
-                </p>
-                <span className="text-[10px] text-gray-500 mt-2 block">Accounts for 42% of revenue</span>
+              {/* Status Filter Buttons */}
+              <div className="flex flex-wrap gap-1 text-[10px] font-['Cinzel',serif] uppercase">
+                <button
+                  onClick={() => fetchAdminOrders("")}
+                  className="px-2.5 py-1 bg-gray-100 hover:bg-gray-200 border rounded-xs"
+                >
+                  All
+                </button>
+                <button
+                  onClick={() => fetchAdminOrders("Placed")}
+                  className="px-2.5 py-1 bg-blue-50 text-blue-800 hover:bg-blue-100 border border-blue-200 rounded-xs"
+                >
+                  Placed
+                </button>
+                <button
+                  onClick={() => fetchAdminOrders("Processing")}
+                  className="px-2.5 py-1 bg-yellow-50 text-yellow-800 hover:bg-yellow-100 border border-yellow-200 rounded-xs"
+                >
+                  Processing
+                </button>
+                <button
+                  onClick={() => fetchAdminOrders("Shipped")}
+                  className="px-2.5 py-1 bg-purple-50 text-purple-800 hover:bg-purple-100 border border-purple-200 rounded-xs"
+                >
+                  Shipped
+                </button>
+                <button
+                  onClick={() => fetchAdminOrders("Delivered")}
+                  className="px-2.5 py-1 bg-green-50 text-green-800 hover:bg-green-100 border border-green-200 rounded-xs"
+                >
+                  Delivered
+                </button>
+                <button
+                  onClick={() => fetchAdminOrders("Return Requested")}
+                  className="px-2.5 py-1 bg-orange-50 text-orange-800 hover:bg-orange-100 border border-orange-200 rounded-xs"
+                >
+                  Returns
+                </button>
               </div>
             </div>
 
-            <div className="bg-white border border-[#C89B3C]/30 p-6 rounded-sm shadow-sm">
-              <h3 className="font-['Cinzel',serif] text-sm uppercase text-[#8A4A2A] tracking-wider mb-4 border-b pb-2">
-                Recent Customer Orders & Transactions
-              </h3>
+            {ordersLoading ? (
+              <p className="text-xs text-gray-500">Loading order records...</p>
+            ) : orders.length === 0 ? (
+              <p className="text-xs text-gray-500">No orders found matching criteria.</p>
+            ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
                   <thead className="bg-[#2C0812] text-[#E8CB86] uppercase font-['Cinzel',serif]">
                     <tr>
                       <th className="p-3">Order ID</th>
-                      <th className="p-3">Item Purchased</th>
-                      <th className="p-3">Date</th>
+                      <th className="p-3">Customer</th>
+                      <th className="p-3">Garments</th>
                       <th className="p-3">Amount</th>
-                      <th className="p-3">Status</th>
+                      <th className="p-3">Current Status</th>
+                      <th className="p-3">Step Controls</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y">
-                    {analytics.recentTransactions.map((tx) => (
-                      <tr key={tx.id} className="hover:bg-[#FBF3E7]/20">
-                        <td className="p-3 font-mono font-semibold">{tx.id}</td>
-                        <td className="p-3 font-semibold text-[#2C0812]">{tx.item}</td>
-                        <td className="p-3 text-gray-600">{tx.date}</td>
-                        <td className="p-3 font-semibold text-[#C89B3C]">${tx.amount}</td>
-                        <td className="p-3">
-                          <span
-                            className={`px-2 py-0.5 text-[10px] rounded-xs font-semibold ${
-                              tx.status === "Completed"
-                                ? "bg-green-100 text-green-800"
-                                : "bg-yellow-100 text-yellow-800"
-                            }`}
-                          >
-                            {tx.status}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
+                    {orders.map((ord) => {
+                      const ordId = ord._id || ord.id;
+                      return (
+                        <tr key={ordId} className="hover:bg-[#FBF3E7]/20 transition-colors">
+                          <td className="p-3 font-mono font-semibold text-[#8A4A2A]">
+                            #{ordId.slice(-8)}
+                          </td>
+                          <td className="p-3">
+                            <p className="font-semibold text-[#2C0812]">{ord.customer_name}</p>
+                            <p className="text-[10px] text-gray-500">{ord.customer_email}</p>
+                            <p className="text-[10px] text-gray-400">{ord.phone}</p>
+                          </td>
+                          <td className="p-3">
+                            {ord.items?.map((item, idx) => (
+                              <div key={idx} className="text-[11px]">
+                                • {item.product_name} ({item.size}) x {item.quantity}
+                              </div>
+                            ))}
+                          </td>
+                          <td className="p-3 font-semibold text-[#C89B3C]">${ord.total_amount}</td>
+                          <td className="p-3">
+                            <span
+                              className={`px-2 py-0.5 text-[9px] font-['Cinzel',serif] uppercase font-bold rounded-xs ${
+                                ord.order_status === "Delivered"
+                                  ? "bg-green-100 text-green-800"
+                                  : ord.order_status === "Cancelled"
+                                  ? "bg-red-100 text-red-800"
+                                  : ord.order_status === "Return Requested"
+                                  ? "bg-orange-100 text-orange-800"
+                                  : "bg-amber-100 text-amber-800"
+                              }`}
+                            >
+                              {ord.order_status}
+                            </span>
+                            {ord.return_reason && (
+                              <p className="text-[9px] text-red-600 italic mt-1">
+                                Reason: {ord.return_reason}
+                              </p>
+                            )}
+                          </td>
+                          <td className="p-3">
+                            {/* Step Change Dropdown */}
+                            <select
+                              value={ord.order_status}
+                              onChange={(e) => handleOrderStatusUpdate(ordId, e.target.value)}
+                              className="border border-[#C89B3C]/50 bg-white p-1 rounded-sm text-xs font-semibold focus:outline-none"
+                            >
+                              <option value="Placed">Placed</option>
+                              <option value="Processing">Processing</option>
+                              <option value="Shipped">Shipped</option>
+                              <option value="Out for Delivery">Out for Delivery</option>
+                              <option value="Delivered">Delivered</option>
+                              <option value="Returned">Returned</option>
+                              <option value="Cancelled">Cancelled</option>
+                            </select>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
+            )}
+          </div>
+        )}
+
+        {/* TAB 3: SALES & PERFORMANCE ANALYTICS */}
+        {activeTab === "analytics" && (
+          <div className="space-y-8">
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-6">
+              <div className="bg-white p-6 border border-[#C89B3C]/30 rounded-sm shadow-sm">
+                <span className="font-['Cinzel',serif] text-xs uppercase text-[#8A4A2A] block mb-1">
+                  Total Gross Revenue
+                </span>
+                <p className="font-['Cormorant_Garamond',serif] italic text-4xl text-[#2C0812] font-bold">
+                  ${analytics.total_revenue?.toLocaleString() || "0"}
+                </p>
+                <span className="text-[10px] text-green-600 mt-2 block">Live sales metric</span>
+              </div>
+
+              <div className="bg-white p-6 border border-[#C89B3C]/30 rounded-sm shadow-sm">
+                <span className="font-['Cinzel',serif] text-xs uppercase text-[#8A4A2A] block mb-1">
+                  Total Orders
+                </span>
+                <p className="font-['Cormorant_Garamond',serif] italic text-4xl text-[#2C0812] font-bold">
+                  {analytics.total_orders || 0}
+                </p>
+                <span className="text-[10px] text-gray-500 mt-2 block">All active transactions</span>
+              </div>
+
+              <div className="bg-white p-6 border border-[#C89B3C]/30 rounded-sm shadow-sm">
+                <span className="font-['Cinzel',serif] text-xs uppercase text-[#8A4A2A] block mb-1">
+                  Delivered Garments
+                </span>
+                <p className="font-['Cormorant_Garamond',serif] italic text-4xl text-green-700 font-bold">
+                  {analytics.delivered_orders || 0}
+                </p>
+                <span className="text-[10px] text-gray-500 mt-2 block">Fulfilled successfully</span>
+              </div>
+
+              <div className="bg-white p-6 border border-[#C89B3C]/30 rounded-sm shadow-sm">
+                <span className="font-['Cinzel',serif] text-xs uppercase text-[#8A4A2A] block mb-1">
+                  Returns Requested
+                </span>
+                <p className="font-['Cormorant_Garamond',serif] italic text-4xl text-orange-700 font-bold">
+                  {analytics.returns_requested || 0}
+                </p>
+                <span className="text-[10px] text-gray-500 mt-2 block">Within 7-day window</span>
+              </div>
+            </div>
+
+            <div className="bg-white border border-[#C89B3C]/30 p-6 rounded-sm shadow-sm">
+              <h3 className="font-['Cinzel',serif] text-sm uppercase text-[#8A4A2A] tracking-wider mb-4 border-b pb-2">
+                Order Fulfillment Health Summary
+              </h3>
+              <p className="text-xs text-gray-600">
+                You currently have{" "}
+                <span className="font-bold text-[#5C1225]">{analytics.pending_orders || 0}</span> orders pending processing or shipment. Maintain quick turnaround times to minimize return rates.
+              </p>
             </div>
           </div>
         )}
 
-        {/* TAB 3: CREATE SECONDARY ADMIN */}
+        {/* TAB 4: CREATE SECONDARY ADMIN */}
         {activeTab === "create-admin" && (
           <div className="max-w-md mx-auto bg-white border border-[#C89B3C]/30 p-8 rounded-sm shadow-sm space-y-4">
             <h2 className="font-['Cinzel',serif] text-sm uppercase text-[#8A4A2A] tracking-wider border-b pb-2">
